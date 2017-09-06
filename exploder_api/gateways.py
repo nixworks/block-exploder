@@ -134,10 +134,37 @@ class DatabaseGateway(object):
         tr_block = self.get_block_by_hash(tr["blockhash"])
         tr['confirmations'] = self.calculate_block_confirmations(tr_block)
         for input in tr['vin']:
-            prev_txid = self.transactions.find_one({"txid": input["prev_txid"].encode('ascii','ignore')})
-            if not prev_txid:
-                raise KeyError("Transaction with txid %s doesn't exist in the database" % input["prev_txid"])
-            input["value"] = prev_txid["vout"][input["vout_index"]]["value"]
+            prev_tx = self.transactions.find_one({"txid": input["prev_txid"].encode('ascii','ignore')})
+            if not prev_tx:
+                raise KeyError("Transaction input %s of txid %s doesn't exist in the database" % (input["prev_txid"], txid))
+            input["value"] = prev_tx["vout"][input["vout_index"]]["value"]
+
+        any_spent = False
+        for output in tr['vout']:
+            any_spent = any_spent or output['spent']
+            output['spent_txid'] = None
+            output['spent_index'] = None
+            output['spent_height'] = None
+
+        if any_spent:
+            spent_txs = [x for x in self.transactions.find({'vin.prev_txid': txid})]
+            x = -1
+            for output in tr['vout']:
+                x += 1
+                if output['spent'] == False:
+                    continue
+                for spent_tx in spent_txs:
+                    y = -1
+                    for spent_in in spent_tx['vin']:
+                        y += 1
+                        if spent_in['prev_txid'] == txid and spent_in['vout_index'] == x:
+                            spent_block = self.get_block_by_hash(spent_tx["blockhash"])
+                            output['spent_txid'] = spent_tx['txid']
+                            output['spent_index'] = y
+                            output['spent_height'] = spent_block['height']
+
+
+        tr['height'] = tr_block['height']
 
         return tr
 

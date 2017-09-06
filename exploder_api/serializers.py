@@ -33,7 +33,8 @@ class TransactionSerializer(object):
             "total": tr["total"],
             "vin": tr["vin"],
             "vout": tr["vout"],
-            "confirmations": tr["confirmations"]
+            "confirmations": tr["confirmations"],
+            "height": tr["height"],
         }
 
 

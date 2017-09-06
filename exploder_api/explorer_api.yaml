@@ -618,6 +618,9 @@ definitions:
       confirmations:
         type: integer
         description: Number of confirmations
+      height:
+        type: integer
+        description: Transaction block number
 
   Vout:
     type: object
@@ -647,6 +650,15 @@ definitions:
       spent:
         type: boolean
         description: Is this output spent
+      spent_txid:
+        type: string
+        description: Spent transaction id
+      spent_index:
+        type: integer
+        description: Spent index
+      spent_height:
+        type: integer
+        description: Spent height
 
   Vin:
     type: object
