@@ -32,7 +32,8 @@ class TransactionSerializer(object):
             "locktime": tr["locktime"],
             "total": tr["total"],
             "vin": tr["vin"],
-            "vout": tr["vout"]
+            "vout": tr["vout"],
+            "confirmations": tr["confirmations"]
         }
 
 

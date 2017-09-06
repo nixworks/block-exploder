@@ -615,6 +615,9 @@ definitions:
         items:
           $ref: '#/definitions/Vout'
         description: List of transaction outputs
+      confirmations:
+        type: integer
+        description: Number of confirmations
 
   Vout:
     type: object
@@ -666,6 +669,10 @@ definitions:
       coinbase:
         type: string
         description: Coinbase data for generation transactions
+      value:
+        type: number
+        format: float
+        description: Value of this input in GAME
 
   Block:
     type: object

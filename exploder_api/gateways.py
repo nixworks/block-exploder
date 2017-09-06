@@ -133,6 +133,11 @@ class DatabaseGateway(object):
 
         tr_block = self.get_block_by_hash(tr["blockhash"])
         tr['confirmations'] = self.calculate_block_confirmations(tr_block)
+        for input in tr['vin']:
+            prev_txid = self.transactions.find_one({"txid": input["prev_txid"].encode('ascii','ignore')})
+            if not prev_txid:
+                raise KeyError("Transaction with txid %s doesn't exist in the database" % input["prev_txid"])
+            input["value"] = prev_txid["vout"][input["vout_index"]]["value"]
 
         return tr
 
