@@ -33,8 +33,8 @@ class TransactionSerializer(object):
             "total": tr["total"],
             "vin": tr["vin"],
             "vout": tr["vout"],
-            "confirmations": tr["confirmations"],
-            "height": tr["height"],
+            "confirmations": tr["confirmations"] if "confirmations" in tr else None,
+            "height": tr["height"] if "height" in tr else None
         }
 
 
