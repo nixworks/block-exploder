@@ -49,15 +49,55 @@ class MongoDatabaseGateway(object):
         self.transactions.create_index([("blockhash", pymongo.ASCENDING)])
         self.transactions.create_index([("blocktime", pymongo.DESCENDING)])
         self.transactions.create_index([("vout.addresses", pymongo.DESCENDING)])
+        self.transactions.create_index([("vin.addresses", pymongo.DESCENDING)])
         self.transactions.create_index([("vin.prev_txid", pymongo.DESCENDING)])
 
     def flush_cache(self):
+        blocks = [BlockSerializer.to_database(block) for block in self.block_cache.values()]
         if self.block_cache:
-            self.blocks.insert_many([BlockSerializer.to_database(block) for block in self.block_cache.values()])
+            self.blocks.insert_many(blocks)
 
         if self.tr_cache:
-            self.transactions.insert_many([TransactionSerializer.to_database(tr) for tr in self.tr_cache.values()])
+            trs = [TransactionSerializer.to_database(tr) for tr in self.tr_cache.values()]
+            
+            in_tr_ids = []
+            block_hashes = []
+            for tr in trs:
+                if tr['blockhash'] not in block_hashes:
+                    block_hashes.append(tr['blockhash'])
+                for v in tr['vin']:
+                    if v['prev_txid'] is not None:
+                        in_tr_ids.append(v['prev_txid'])
 
+            in_trs = {}
+            for in_tr in self.transactions.find({'txid': {'$in': in_tr_ids}}):
+                in_trs[in_tr['txid']] = in_tr
+
+            block_by_hash = {}
+            for block in self.blocks.find({'hash': {'$in': block_hashes}}):
+                block_by_hash[block['hash']] = block
+            for block in blocks:
+                block_by_hash[block['hash']] = block
+
+            for tr in trs:
+                in_trs[tr['txid']] = tr
+
+            for tr in trs:
+                if tr['blockhash'] in block_by_hash:
+                    block = block_by_hash[tr['blockhash']]
+                    tr['height'] = block['height']
+                for vin in tr['vin']:
+                    if vin['prev_txid'] is None or vin['prev_txid'] not in in_trs:
+                        continue
+                    in_tr = in_trs[vin['prev_txid']]
+                    if vin['vout_index'] not in in_tr['vout']:
+                        continue
+                    vout = in_tr['vout'][vin['vout_index']]
+                    vin['value'] = vout['value']
+                    vin['addresses'] = vout['addresses']
+
+            self.transactions.insert_many(trs)
+            
         self.block_cache = {}
         self.tr_cache = {}
 
@@ -170,6 +210,7 @@ class MongoDatabaseGateway(object):
         self.block_cache[block.hash] = block
 
         for tr in block.tx:
+            # HERE
             self.tr_cache[tr.txid] = tr
 
         if len(self.block_cache) >= self.cache_size:
