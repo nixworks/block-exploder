@@ -173,7 +173,10 @@ def get_address_balance(address_hash):
 #############
 def send_raw_transaction(hex):
     try:
-        rpc.sendrawtransaction(hex)
+        txid = rpc.sendrawtransaction(hex)
+        return {
+            "txid": txid
+        }
     except JSONRPCException as e:
         return e.error, 400
 

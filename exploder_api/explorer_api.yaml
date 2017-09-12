@@ -366,6 +366,12 @@ paths:
       responses:
         200:
           description: Transmitted the transaction successfully
+          schema:
+            type: object
+            properties:
+              txid:
+                type: string
+                description: Transaction ID
         400:
           description: Bad transaction
         default:
