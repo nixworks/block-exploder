@@ -58,7 +58,11 @@ class MongoDatabaseGateway(object):
             self.blocks.insert_many(blocks)
 
         if self.tr_cache:
-            trs = [TransactionSerializer.to_database(tr) for tr in self.tr_cache.values()]
+            trs = [] 
+            for v in self.tr_cache.values():
+                tr = TransactionSerializer.to_database(v)
+                tr['size'] = v.size
+                trs.append(tr)
             
             in_tr_ids = []
             block_hashes = []
@@ -88,9 +92,12 @@ class MongoDatabaseGateway(object):
                     tr['height'] = block['height']
                 for vin in tr['vin']:
                     if vin['prev_txid'] is None or vin['prev_txid'] not in in_trs:
+                        if vin['prev_txid'] is not None:
+                            print "Vin %s missing for %s" % (vin['prev_txid'], tr['txid'])
                         continue
                     in_tr = in_trs[vin['prev_txid']]
-                    if vin['vout_index'] not in in_tr['vout']:
+                    if vin['vout_index'] >= len(in_tr['vout']):
+                        print "Vout %s missing for %s" % (vin['vout_index'], tr['txid'])
                         continue
                     vout = in_tr['vout'][vin['vout_index']]
                     vin['value'] = vout['value']

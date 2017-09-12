@@ -6,10 +6,26 @@ import itertools
 import logging
 import requests
 import json
-from gamecredits.factories import BlockFactory
+from gamecredits.factories import BlockFactory, TransactionFactory
 from gamecredits.constants import SUBSIDY_HALVING_INTERVAL
 from bitcoinrpc.authproxy import JSONRPCException
 
+transactionFactory_from_rpc_orig = TransactionFactory.from_rpc
+@staticmethod
+def transactionFactory_from_rpc_new(rpc_tr):
+    tr = transactionFactory_from_rpc_orig(rpc_tr)
+    tr.size = len(rpc_tr['hex'])/2
+    return tr
+TransactionFactory.from_rpc = transactionFactory_from_rpc_new
+
+transactionFactory_from_stream_orig = TransactionFactory.from_stream
+@staticmethod
+def transactionFactory_from_stream_new(stream, blockhash, blocktime, coinbase=False):
+    tr_start = stream.tell()
+    tr = transactionFactory_from_stream_orig(stream, blockhash, blocktime, coinbase)
+    tr.size = stream.tell() - tr_start
+    return tr
+TransactionFactory.from_stream = transactionFactory_from_stream_new
 
 class Blockchain(object):
     def __init__(self, database, config):
